@@ -1,49 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Book, BookDocument } from './book.schema';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 
-interface Book {
-    id: number;
-    title: string;
-    author: string;
-    publishedYear: number;
-}
-
 @Injectable()
 export class BooksService {
-    private books: Book[] = [];
-    private idCounter = 1;
+  constructor(
+    @InjectModel(Book.name) private bookModel: Model<BookDocument>,
+  ) {}
 
+  create(createBookDto: CreateBookDto) {
+    const createdBook = new this.bookModel(createBookDto);
+    return createdBook.save();
+  }
 
-    create(book: CreateBookDto) {
-        const newBook  = {id: this.idCounter++, ...book};
-        this.books.push(newBook);
-        return newBook;
-    }
+  findAll() {
+    return this.bookModel.find().exec();
+  }
 
-    findAll() {
-        return this.books;
-    }
-    
+  findOne(id: string) {
+    return this.bookModel.findById(id).exec();
+  }
 
-    findOne(id: number) {
-        return this.books.find(book => book.id === id);
-    }
+  update(id: string, updateBookDto: UpdateBookDto) {
+    return this.bookModel.findByIdAndUpdate(id, updateBookDto, { new: true }).exec();
+  }
 
-    update(id: number, updateBookDto: UpdateBookDto) {
-        const bookIndex = this.books.findIndex(book => book.id === id);
-        if (bookIndex === -1) {
-            throw new NotFoundException('Book not found');
-        }
-        this.books[bookIndex] = {...this.books[bookIndex], ...updateBookDto};
-        return this.books[bookIndex];
-    }
-
-    remove(id: number) {
-        const bookIndex = this.books.findIndex(book => book.id === id);
-        if (bookIndex === -1) {
-            throw new NotFoundException('Book not found');
-        }
-        this.books.splice(bookIndex, 1);
-    }
+  remove(id: string) {
+    return this.bookModel.findByIdAndDelete(id).exec();
+  }
 }
